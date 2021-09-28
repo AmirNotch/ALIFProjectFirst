@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.SqlClient;
 
 namespace ALIFProjectFirst
 {
@@ -6,8 +7,70 @@ namespace ALIFProjectFirst
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-        } 
+            var conString = @"Data Source = .\Dev; Initial Catalog = ALIFPRojectFirst; Integrated Security = true";
+
+            Console.WriteLine("Добрый день Вас приветствует программа Alif Deposit\n");
+            
+            bool working = true;
+
+            while (working)
+            {
+                Console.WriteLine("Для выбора услуг выбирите номер\n");
+                Console.WriteLine("1.Регистрация:\n2.Авторизация:");
+                int.TryParse(Console.ReadLine(), out var choice);
+                switch (choice)
+                {
+                    case 1:
+                        
+                        break;
+                    case 2:
+refresh_number:
+                        Console.WriteLine("Введите номер Телефона для авторизации");
+                        Console.WriteLine("Например: 888800080\n");
+                        int.TryParse(Console.ReadLine(), out var number);
+                        if (number == 0)
+                        {
+                            Console.WriteLine("Вы ввели неправильный номер попробуйте заного");
+                            goto refresh_number;
+                        }
+                        int accounNumber = GetPhoneNumber(number, conString);
+                        if (accounNumber == 0)
+                        {
+                            Console.WriteLine("Вы не Зарегистрированы");
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        
+
+        private static int GetPhoneNumber(int number, string conString)
+        {
+            var accPhoneNumber = 0;
+            SqlConnection sqlConnection = new SqlConnection(conString);
+            var query = "Select PhoneNumber from Account where PhoneNumber = @phonenumber";
+
+            var command = sqlConnection.CreateCommand();
+            command.CommandText = query;
+            command.Parameters.AddWithValue("@phonenumber", number);
+
+            sqlConnection.Open();
+
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                accPhoneNumber = reader.GetInt32(0);
+            }
+
+            sqlConnection.Close();
+            reader.Close();
+
+            return accPhoneNumber;
+        }
     }
     public class Account
     {
