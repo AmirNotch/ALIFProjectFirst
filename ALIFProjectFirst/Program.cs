@@ -12,13 +12,14 @@ namespace ALIFProjectFirst
             var conString = @"Data Source = .\Dev; Initial Catalog = ALIFProjectFirst; Integrated Security = true";
 
             Console.WriteLine("Добрый день Вас приветствует программа Alif Deposit\n");
-            
+
+            var exitNumber = 0;
             bool working = true;
 
             while (working)
             {
                 Console.WriteLine("Для выбора услуг выбирите номер\n");
-                Console.WriteLine("1.Регистрация:\n2.Авторизация:");
+                Console.WriteLine("1.Регистрация:\n2.Авторизация:\n3.Выйти из программы");
                 int.TryParse(Console.ReadLine(), out var choice);
                 switch (choice)
                 {
@@ -27,6 +28,7 @@ namespace ALIFProjectFirst
                         break;
                     case 2:
 refresh_number:
+                        string login = "";
                         Console.WriteLine("Введите номер Телефона для авторизации");
                         Console.WriteLine("Например: 888800080\n");
                         int.TryParse(Console.ReadLine(), out var number);
@@ -35,24 +37,40 @@ refresh_number:
                             Console.WriteLine("Вы ввели неправильный номер попробуйте заного");
                             goto refresh_number;
                         }
-                        int accounNumber = GetPhoneNumber(number, conString);
+                        int accounNumber = GetPhoneNumber(number, conString, ref login);
                         if (accounNumber == 0)
                         {
                             Console.WriteLine("Вы не Зарегистрированы");
                         }
                         else
                         {
-                            var datatime = DateTime.Now;
+                            /*var datatime = DateTime.Now;
                             if (true)
                             {
 
-                            }
-                            Console.WriteLine("Добрый день ");
+                            }*/
+                            Console.WriteLine($"Добрый день {login}");
                         }
+                        break;
+
+                    case 3:
+                        exitNumber++;
+                        working = false;
                         break;
                     default:
                         break;
                 }
+            }
+
+            if (exitNumber == 1)
+            {
+                return;
+            }
+
+            bool working2 = true;
+            while (working2)
+            {
+                
             }
         }
 
@@ -177,11 +195,11 @@ serialNumber_error:
             sqlConnection.Close();
         }
 
-        private static int GetPhoneNumber(int number, string conString)
+        private static int GetPhoneNumber(int number, string conString, ref string login)
         {
             var accPhoneNumber = 0;
             SqlConnection sqlConnection = new SqlConnection(conString);
-            var query = "Select PhoneNumber from Account where PhoneNumber = @phonenumber";
+            var query = "Select PhoneNumber, FirstName from Account where PhoneNumber = @phonenumber";
 
             var command = sqlConnection.CreateCommand();
             command.CommandText = query;
@@ -194,6 +212,7 @@ serialNumber_error:
             while (reader.Read())
             {
                 accPhoneNumber = reader.GetInt32(0);
+                login = (string)reader.GetValue(1);
             }
 
             sqlConnection.Close();
