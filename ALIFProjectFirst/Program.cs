@@ -55,14 +55,14 @@ namespace ALIFProjectFirst
 
                             TimeSpan evening1 = new TimeSpan(18, 0, 0); //18 o'clock
                             TimeSpan evening2 = new TimeSpan(22, 0, 0); //22 o'clock
-                            
+
                             TimeSpan now = DateTime.Now.TimeOfDay;
                             if (now >= morning1 && now <= morning2)
                             {
                                 Console.WriteLine($"Доброе утро {login}");
-                                workingFirstPart = false; 
+                                workingFirstPart = false;
                             }
-                            else if(now >= afternoon1 && now <= afternoon2) 
+                            else if (now >= afternoon1 && now <= afternoon2)
                             {
                                 Console.WriteLine($"Добрый день {login}");
                                 workingFirstPart = false;
@@ -102,35 +102,39 @@ namespace ALIFProjectFirst
                 switch (choice)
                 {
                     case 1:
-                        int accountId = GetAccointId(number, conString);
-                        int workSheetId = GetWorkSheetAccointId(accountId, conString);
-                        if (workSheetId == 0)
                         {
-                            CreateWorkSheet(conString, number);
-                        }
-                        else
-                        {
-reshenie:
-                            Console.WriteLine("У вас уже есть есть анкета\nХотите заполнить новую\n1.Да\n2.Нет");
-                            int.TryParse(Console.ReadLine(), out var choiceWorkSheet);
-                            switch (choiceWorkSheet)
+                            int accountId = GetAccointId(number, conString);
+                            int workSheetId = GetWorkSheetAccointId(accountId, conString);
+                            if (workSheetId == 0)
                             {
-                                case 1:
-                                    DeleteWorkSheet(conString, accountId);
+                                CreateWorkSheet(conString, number);
+                            }
+                            else
+                            {
+                            reshenie:
+                                Console.WriteLine("У вас уже есть есть анкета\nХотите заполнить новую\n1.Да\n2.Нет");
+                                int.TryParse(Console.ReadLine(), out var choiceWorkSheet);
+                                switch (choiceWorkSheet)
+                                {
+                                    case 1:
+                                        DeleteWorkSheet(conString, accountId);
 
-                                    CreateWorkSheet(conString, number);
-                                    break;
-                                case 2:
-                                    continue;
-                                    break;
-                                default:
-                                    Console.WriteLine("Выберите ваше решение");
-                                    goto reshenie;
-                                    break;
+                                        CreateWorkSheet(conString, number);
+                                        break;
+                                    case 2:
+                                        continue;
+                                    default:
+                                        Console.WriteLine("Выберите ваше решение");
+                                        goto reshenie;
+                                        break;
+                                }
                             }
                         }
                         break;
                     case 2:
+                        {
+                            CreateCredit(conString, number);
+                        }
                         break;
                     case 3:
                         break;
@@ -149,6 +153,284 @@ reshenie:
             }
         }
 
+        private static void CreateCredit(string conString, int number)
+        {
+            int accountId = GetAccointId(number, conString);
+            int workSheetId = GetWorkSheetAccointId(accountId, conString);
+            var workSheetAmount = 0;
+            SqlConnection sqlConnection = new SqlConnection(conString);
+            try
+            {
+
+                var query = "SELECT Amount from WorkSheet where Account_Id = @accountId";
+
+                var command = sqlConnection.CreateCommand();
+                command.CommandText = query;
+                command.Parameters.AddWithValue(@"accountId", accountId);
+
+                sqlConnection.Open();
+
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    workSheetAmount = reader.GetInt32(0);
+                }
+
+                sqlConnection.Close();
+                reader.Close();
+                command.Parameters.Clear();
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+
+            var amount = 0;
+        salary:
+            Console.Write("Укажите свою заработную плату\nНапример: 3000\n");
+            int.TryParse(Console.ReadLine(), out var salary);
+            if (salary <= 0)
+            {
+                Console.Write("Укажите свою заработную плату\nВыше чем 0\n");
+                goto salary;
+            }
+            else if (salary == 0)
+            {
+                Console.Write("Укажите свою заработную плату\nНапример: 3000\n");
+                goto salary;
+            }
+        credit:
+            Console.Write("Укажите сумму кредита которую вы хотите взять\nНапример: 1000\n");
+            int.TryParse(Console.ReadLine(), out var credit);
+            if (credit <= 0)
+            {
+                Console.Write("Укажите сумму кредита которую вы хотите взять\nВыше чем 0\n");
+                goto credit;
+            }
+            else if (credit == 0)
+            {
+                Console.Write("Укажите сумму кредита которую вы хотите взять\nНапример: 1000\n");
+                goto credit;
+            }
+            var salaryCount = (credit / salary) * 100;
+            var salaryNumber = 0;
+            while (salaryNumber < 1)
+            {
+                switch (salaryCount)
+                {
+                    case int n when (n >= 0 && n < 80):
+                        salaryNumber++;
+                        amount += 4;
+                        break;
+                    case int n when (n >= 80 && n < 150):
+                        salaryNumber++;
+                        amount += 3;
+                        break;
+                    case int n when (n >= 150 && n <= 250):
+                        salaryNumber++;
+                        amount += 2;
+                        break;
+                    case int n when (n > 250):
+                        salaryNumber++;
+                        amount += 1;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            Console.WriteLine();
+            Console.WriteLine("Укажите свою кредитную историю");
+            Console.Write("1) 3 и более закрытых кредитов:\n2) 1 или 2 закрытых кредита:\n3) 0 кредитных историй\n");
+            var creditHistory = 0;
+            var sexNumber = 0;
+            while (sexNumber < 1)
+            {
+                int.TryParse(Console.ReadLine(), out var choice);
+                switch (choice)
+                {
+                    case int n when (n >= 3):
+                        sexNumber++;
+                        amount += 2;
+                        creditHistory = choice;
+                        break;
+                    case int n when (n == 1 && n == 2):
+                        sexNumber++;
+                        amount += 1;
+                        creditHistory = choice;
+                        break;
+                    case int n when (n >= 0):
+                        sexNumber++;
+                        amount += -1;
+                        creditHistory = choice;
+                        break;
+                    default:
+                        Console.WriteLine("Пожалуйста больше 0");
+                        break;
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Укажите свою просрочку в кредитной истории");
+            Console.Write("1) свыше 7 раз:\n2) 5-7 раз:\n3) 4 раза\n4) до 3 раз\n");
+            var deployCreditHistory = 0;
+            var deployCreditNumber = 0;
+            while (deployCreditNumber < 1)
+            {
+                int.TryParse(Console.ReadLine(), out var choice);
+                switch (choice)
+                {
+                    case int n when (n > 7):
+                        deployCreditNumber++;
+                        amount += -3;
+                        deployCreditHistory = choice;
+                        break;
+                    case int n when (n >= 4 && n <= 7):
+                        deployCreditNumber++;
+                        amount += -2;
+                        deployCreditHistory = choice;
+                        break;
+                    case int n when (n == 4):
+                        deployCreditNumber++;
+                        amount += -1;
+                        deployCreditHistory = choice;
+                        break;
+                    case int n when (n <= 3 && n >= 0):
+                        deployCreditNumber++;
+                        amount += 0;
+                        deployCreditHistory = choice;
+                        break;
+                    default:
+                        Console.WriteLine("Пожалуйста больше 0");
+                        break;
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Выберите Цель кредита");
+            Console.Write("1.Бытовая техника:\n2.Ремонт:\n3.Телефон:\n4.Прочее:\n");
+            var goalCredit = "";
+            var goalCreditNumber = 0;
+            while (goalCreditNumber < 1)
+            {
+                int.TryParse(Console.ReadLine(), out var choice);
+                switch (choice)
+                {
+                    case 1:
+                        goalCreditNumber++;
+                        amount += 2;
+                        goalCredit = "Бытовая техника";
+                        break;
+                    case 2:
+                        goalCreditNumber++;
+                        amount += 1;
+                        goalCredit = "Ремонт";
+                        break;
+                    case 3:
+                        goalCreditNumber++;
+                        amount += 0;
+                        goalCredit = "Телефон";
+                        break;
+                    case 4:
+                        goalCreditNumber++;
+                        amount += -1;
+                        goalCredit = "Прочее";
+                        break;
+                    default:
+                        Console.WriteLine("Пожалуйста укажите Цель кредита");
+                        break;
+                }
+            }
+
+            Console.WriteLine();
+            Console.Write("Выберите Срок кредита\nНапример 12 мес\n");
+            var creditTerm = 0;
+            var creditTermNumber = 0;
+            while (creditTermNumber < 1)
+            {
+                int.TryParse(Console.ReadLine(), out var choice);
+                switch (choice)
+                {
+                    case int n when(n > 0):
+                        creditTermNumber++;
+                        amount += 1;
+                        creditTerm = choice;
+                        break;
+                    default:
+                        Console.WriteLine("Пожалуйста выберите Срок кредита");
+                        break;
+                }
+            }
+            var statusId = 0;
+            if ((workSheetAmount + amount) > 11)
+            {
+                statusId = 1;
+            }
+            else
+            {
+                statusId = 2;
+            }
+
+            try
+            {
+                Credit creditSheet = new Credit
+                {
+                    SumOfCredit = salaryCount,
+                    CreditHistory = creditHistory,
+                    DelaysCreditHistory = deployCreditHistory,
+                    GoalOfCredit = goalCredit,
+                    CreditTerm = creditTerm,
+                    Status_Id = statusId,
+                    Amount = amount,
+                    Account_Id = accountId
+                };
+                var query = "Insert into Credit(Account_Id, SumOfCredit, CreditHistory, DelaysCreitHistory, CreditTerm, Status_Id, GoalOfCredit, Amount) " +
+                    "Values(@accountId, @sumOfCredit, @creditHistory, @delaysCreitHistory, @creditTerm, @status_Id, @goalOfCredit, @amount)";
+                var command = sqlConnection.CreateCommand();
+                command.Parameters.Clear();
+                command.CommandText = query;
+                command.Parameters.AddWithValue("@accountId", creditSheet.Account_Id);
+                command.Parameters.AddWithValue("@sumOfCredit", creditSheet.SumOfCredit);
+                command.Parameters.AddWithValue("@creditHistory", creditSheet.CreditHistory);
+                command.Parameters.AddWithValue("@delaysCreitHistory", creditSheet.DelaysCreditHistory);
+                command.Parameters.AddWithValue("@creditTerm", creditSheet.CreditTerm);
+                command.Parameters.AddWithValue("@status_Id", creditSheet.Status_Id);
+                command.Parameters.AddWithValue("@goalOfCredit", creditSheet.GoalOfCredit);
+                command.Parameters.AddWithValue("@amount", creditSheet.Amount);
+
+                sqlConnection.Open();
+
+                var result = command.ExecuteNonQuery();
+
+                if (result > 0 && statusId == 1)
+                {
+                    Console.WriteLine("Вы успешно Получили Кредит");
+                }
+                else if (result > 0 && statusId == 2)
+                {
+                    Console.WriteLine("Вам отказано в Кредите");
+                }
+                else
+                {
+                    Console.WriteLine("Что-то пошло не так");
+                }
+                sqlConnection.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message); 
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+        }
+
         private static void DeleteWorkSheet(string conString, int accountId)
         {
             var sqlConnection = new SqlConnection(conString);
@@ -158,7 +440,7 @@ reshenie:
                 var command = sqlConnection.CreateCommand();
                 command.CommandText = query;
                 command.Parameters.AddWithValue("@accountId", accountId);
-                
+
                 sqlConnection.Open();
 
                 var result = command.ExecuteNonQuery();
@@ -284,7 +566,7 @@ reshenie:
                         break;
                 }
             }
-            
+
             Console.WriteLine("Выберите Ваше гражданство");
             Console.Write("1.Таджикистан:\n2.Зарубеж:\n");
             var nationality = "";
@@ -315,7 +597,7 @@ reshenie:
             try
             {
                 accountId = GetAccointId(number, conString);
-                
+
                 WorkSheet workSheet = new WorkSheet
                 {
                     Sex = sexString,
@@ -323,9 +605,10 @@ reshenie:
                     MaritalStatus = status,
                     Nationality = nationality,
                     AccountId = accountId,
+                    Amount = amount
                 };
 
-                var query = "Insert into WorkSheet(Account_Id, Sex, MaritalStatus, Age, Nationality) Values(@accountId, @sex, @maritalStatus, @age, @nationality)";
+                var query = "Insert into WorkSheet(Account_Id, Sex, MaritalStatus, Age, Nationality, Amount) Values(@accountId, @sex, @maritalStatus, @age, @nationality, @amount)";
                 var command = sqlConnection.CreateCommand();
                 command.CommandText = query;
                 command.Parameters.AddWithValue("@accountId", workSheet.AccountId);
@@ -333,6 +616,7 @@ reshenie:
                 command.Parameters.AddWithValue("@maritalStatus", workSheet.MaritalStatus);
                 command.Parameters.AddWithValue("@age", workSheet.Age);
                 command.Parameters.AddWithValue("@nationality", workSheet.Nationality);
+                command.Parameters.AddWithValue("@amount", workSheet.Amount);
 
                 sqlConnection.Open();
 
@@ -480,17 +764,6 @@ reshenie:
                 goto numbersPayer_error;
             }
 
-            /*if (taxPayerIDNumber.ToString().Length == 9)
-        {
-            Console.WriteLine("ИИН должен содержать 9 цифр");
-            Console.WriteLine("Введите ИИН ещё раз");
-            goto numbersPayer_error;
-        }
-        if (taxPayerIDNumber == 0)
-        {
-            Console.WriteLine("Введите пожалуйста только цифры ещё раз\n");
-            goto numbersPayer_error;
-        }*/
             SqlConnection sqlConnection = new SqlConnection(conString);
             try
             {
@@ -590,6 +863,7 @@ reshenie:
         public string MaritalStatus { get; set; }
         public int Age { get; set; }
         public string Nationality { get; set; }
+        public int Amount { get; set; }
     }
     public class Status
     {
@@ -602,8 +876,10 @@ reshenie:
         public int Account_Id { get; set; }
         public decimal SumOfCredit { get; set; }
         public int CreditHistory { get; set; }
-        public string DelaysCreditHistory { get; set; }
+        public int DelaysCreditHistory { get; set; }
+        public string GoalOfCredit { get; set; }
         public int CreditTerm { get; set; }
         public int Status_Id { get; set; }
+        public int Amount { get; set; }
     }
 }
