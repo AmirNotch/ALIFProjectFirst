@@ -12,7 +12,7 @@ namespace ALIFProjectFirst
             var conString = @"Data Source = .\Dev; Initial Catalog = ALIFProjectFirst; Integrated Security = true";
 
             Console.WriteLine("Добрый день Вас приветствует программа Alif Deposit\n");
-
+        log_in:
             var exitNumber = 0;
             bool workingFirstPart = true;
 
@@ -98,12 +98,12 @@ namespace ALIFProjectFirst
             {
             anketa:
                 Console.WriteLine("Для выбора услуг выбирите номер\n");
-                Console.WriteLine("1.Заполнение Анкеты:\n2.Заявка на кредит:\n3.Посмотреть историю заявок:\n4.График Погашения\n5.Выйти из программы");
+                Console.WriteLine("1.Заполнение Анкеты:\n2.Заявка на кредит:\n3.Посмотреть историю заявок:\n4.График Погашения\n5.Выйти из учётной записи\n6.Выйти из программы");
                 int.TryParse(Console.ReadLine(), out var choice);
                 switch (choice)
                 {
                     case 1:
-                        { 
+                        {
                             int accountId = GetAccointId(number, conString);
                             int workSheetId = GetWorkSheetAccointId(accountId, conString);
 
@@ -167,6 +167,9 @@ namespace ALIFProjectFirst
                         ShowRangeCreditHistory(conString, number);
                         break;
                     case 5:
+                        goto log_in;
+                        break;
+                    case 6:
                         exitNumber++;
                         workingSecondPart = false;
                         break;
