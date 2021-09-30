@@ -92,12 +92,13 @@ namespace ALIFProjectFirst
             {
                 return;
             }
-            
+
             bool workingSecondPart = true;
             while (workingSecondPart)
             {
+            anketa:
                 Console.WriteLine("Для выбора услуг выбирите номер\n");
-                Console.WriteLine("1.Заполнение Анкеты:\n2.Заявка на кредит:\n3.Посмотреть историю заявок:\n4.Выйти из программы");
+                Console.WriteLine("1.Заполнение Анкеты:\n2.Заявка на кредит:\n3.Посмотреть историю заявок:\n4.График Погашения\n5.Выйти из программы");
                 int.TryParse(Console.ReadLine(), out var choice);
                 switch (choice)
                 {
@@ -133,13 +134,26 @@ namespace ALIFProjectFirst
                         break;
                     case 2:
                         {
-                            CreateCredit(conString, number);
+                            int accountId = GetAccointId(number, conString);
+                            int workSheetId = GetWorkSheetAccointId(accountId, conString);
+                            if (workSheetId != 0)
+                            {
+                                CreateCredit(conString, number);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Сначало заполните Анкету");
+                                goto anketa;
+                            }
                         }
                         break;
                     case 3:
                         SelectCreditHistory(conString, login);
                         break;
                     case 4:
+                        ShowRangeCreditHistory(conString, number);
+                        break;
+                    case 5:
                         exitNumber++;
                         workingSecondPart = false;
                         break;
@@ -152,6 +166,61 @@ namespace ALIFProjectFirst
             {
                 return;
             }
+        }
+
+        private static void ShowRangeCreditHistory(string conString, int number)
+        {
+            SqlConnection sqlConnection = new SqlConnection(conString);
+            try
+            {
+                RangeCreditHistory[] rangeCreditHistories = new RangeCreditHistory[0];
+
+                var query = "Select Account.FirstName, CreditHistory.RangeTime from CreditHistory " +
+                    "Left join Account On Account.Id = CreditHistory.Account_Id " +
+                    "Where Account.PhoneNumber = @phoneNumber";
+                var command = sqlConnection.CreateCommand();
+                command.CommandText = query;
+                command.Parameters.AddWithValue("@phoneNumber", number);
+
+                sqlConnection.Open();
+
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    RangeCreditHistory rangeCreditHistory = new RangeCreditHistory { };
+
+                    rangeCreditHistory.FirstName = reader["FirstName"].ToString();
+                    rangeCreditHistory.RangeTime = DateTime.Parse(reader["RangeTime"].ToString());
+
+                    AddRangeCredit(ref rangeCreditHistories, rangeCreditHistory);
+                }
+                sqlConnection.Close();
+
+                foreach (var rangeCreditHistory in rangeCreditHistories)
+                {
+                    Console.WriteLine($"Имя:{rangeCreditHistory.FirstName}, Дата сдачи кредита :{rangeCreditHistory.RangeTime}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+        }
+        private static void AddRangeCredit(ref RangeCreditHistory[] rangeCreditHistories, RangeCreditHistory rangeCreditHistory)
+        {
+            if (rangeCreditHistories == null)
+            {
+                return;
+            }
+
+            Array.Resize(ref rangeCreditHistories, rangeCreditHistories.Length + 1);
+
+            rangeCreditHistories[rangeCreditHistories.Length - 1] = rangeCreditHistory;
         }
 
         private static void SelectCreditHistory(string conString, string login)
@@ -430,7 +499,7 @@ namespace ALIFProjectFirst
                 int.TryParse(Console.ReadLine(), out var choice);
                 switch (choice)
                 {
-                    case int n when(n > 0):
+                    case int n when (n > 0):
                         creditTermNumber++;
                         amount += 1;
                         creditTerm = choice;
@@ -484,6 +553,7 @@ namespace ALIFProjectFirst
                 if (result > 0 && statusId == 1)
                 {
                     Console.WriteLine("Вы успешно Получили Кредит");
+                    RangeCreditHistory(conString, creditTerm, number);
                 }
                 else if (result > 0 && statusId == 2)
                 {
@@ -497,7 +567,49 @@ namespace ALIFProjectFirst
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message); 
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+        }
+
+        private static void RangeCreditHistory(string conString, int creditTerm, int number)
+        {
+            int accountId = GetAccointId(number, conString);
+
+            SqlConnection sqlConnection = new SqlConnection(conString);
+            sqlConnection.Open();
+
+            SqlTransaction sqlTransaction = sqlConnection.BeginTransaction();
+
+            var command = sqlConnection.CreateCommand();
+
+            command.Transaction = sqlTransaction;
+
+            try
+            {
+                string query = "";
+                var now = DateTime.Now;
+                for (int i = 1; i <= creditTerm; i++)
+                {
+                    query = "Insert into CreditHistory(Account_Id, RangeTime) Values(@account_Id, @rangeTime)";
+                    command.CommandText = query;
+                    command.Parameters.AddWithValue("@account_Id", accountId);
+                    command.Parameters.AddWithValue("@rangeTime", now.AddMonths(i));
+
+                    command.ExecuteNonQuery();
+                    command.Parameters.Clear();
+                }
+
+                sqlTransaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+
+                sqlTransaction.Rollback();
             }
             finally
             {
@@ -521,7 +633,7 @@ namespace ALIFProjectFirst
 
                 if (result > 0)
                 {
-                    Console.WriteLine("Вы успешно заполнили Анкету");
+                    Console.WriteLine("Вы удалили Анкету");
                 }
                 else
                 {
@@ -625,7 +737,7 @@ namespace ALIFProjectFirst
                         amount += 1;
                         age = choice;
                         break;
-                    case int n when (n >= 46 && n <= 62):
+                    case int n when (n >= 36 && n <= 62):
                         ageNumber++;
                         amount += 2;
                         age = choice;
@@ -841,6 +953,14 @@ namespace ALIFProjectFirst
             SqlConnection sqlConnection = new SqlConnection(conString);
             try
             {
+                int checkPhone = CheckPhoneNumber(conString, phoneNumber);
+
+                if (checkPhone != 0)
+                {
+                    Console.WriteLine("Извините но это номер уже зарегистрирован");
+                    return;
+                }
+
                 var account = new Account
                 {
                     FirstName = firstName,
@@ -885,6 +1005,31 @@ namespace ALIFProjectFirst
                 sqlConnection.Close();
             }
 
+        }
+
+        private static int CheckPhoneNumber(string conString, string phoneNumber)
+        {
+            var accPhoneNumber = 0;
+            SqlConnection sqlConnection = new SqlConnection(conString);
+            var query = "select Account.PhoneNumber from Account where Account.PhoneNumber = @phoneNumber";
+
+            var command = sqlConnection.CreateCommand();
+            command.CommandText = query;
+            command.Parameters.AddWithValue("@phonenumber", phoneNumber);
+
+            sqlConnection.Open();
+
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                accPhoneNumber = reader.GetInt32(0);
+            }
+
+            sqlConnection.Close();
+            reader.Close();
+
+            return accPhoneNumber;
         }
 
         private static int GetPhoneNumber(int number, string conString, ref string login)
@@ -943,6 +1088,12 @@ namespace ALIFProjectFirst
     {
         public int Id { get; set; }
         public string Name { get; set; }
+    }
+    public class RangeCreditHistory
+    {
+        public int Id { get; set; }
+        public string FirstName { get; set; }
+        public DateTime RangeTime { get; set; }
     }
     public class Credit : Status
     {
