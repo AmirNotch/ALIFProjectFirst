@@ -92,7 +92,7 @@ namespace ALIFProjectFirst
             {
                 return;
             }
-
+            
             bool workingSecondPart = true;
             while (workingSecondPart)
             {
@@ -137,6 +137,7 @@ namespace ALIFProjectFirst
                         }
                         break;
                     case 3:
+                        SelectCreditHistory(conString, login);
                         break;
                     case 4:
                         exitNumber++;
@@ -151,6 +152,79 @@ namespace ALIFProjectFirst
             {
                 return;
             }
+        }
+
+        private static void SelectCreditHistory(string conString, string login)
+        {
+            SqlConnection sqlConnection = new SqlConnection(conString);
+            try
+            {
+                Credit[] creditHistories = new Credit[0];
+
+                var query = "select Account.FirstName, Credit.SumOfCredit, Credit.CreditHistory, Credit.DelaysCreitHistory, Credit.CreditTerm, Credit.GoalOfCredit, Status.Name " +
+                    "from Credit " +
+                    "Left Join Account ON Account.Id = Credit.Account_Id " +
+                    "Left Join Status On Status.Id = Credit.Status_Id " +
+                    "Where Account.FirstName = @firstName ";
+                var command = sqlConnection.CreateCommand();
+                command.CommandText = query;
+                command.Parameters.AddWithValue("@firstName", login);
+
+                sqlConnection.Open();
+
+                var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    Credit creditHistory = new Credit { };
+
+                    creditHistory.FirstName = reader["FirstName"].ToString();
+                    creditHistory.SumOfCredit = decimal.Parse(reader["SumOfCredit"].ToString());
+                    creditHistory.CreditHistory = int.Parse((reader["CreditHistory"].ToString()));
+                    creditHistory.DelaysCreditHistory = int.Parse(reader["DelaysCreitHistory"].ToString());
+                    creditHistory.CreditTerm = int.Parse(reader["CreditTerm"].ToString());
+                    creditHistory.GoalOfCredit = reader["GoalOfCredit"].ToString();
+                    creditHistory.Name = reader["Name"].ToString();
+
+                    AddCredit(ref creditHistories, creditHistory);
+                }
+                sqlConnection.Close();
+
+                foreach (var creditHistory in creditHistories)
+                {
+                    if (creditHistory.Name == "Одобрено")
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    }
+                    Console.WriteLine($"Имя:{creditHistory.FirstName}, Сумма кредита от общего дохода:{creditHistory.SumOfCredit}%, " +
+                        $"Кредитная История:{creditHistory.CreditHistory}, Просрочка в кредитной истории:{creditHistory.DelaysCreditHistory}, " +
+                        $"Срок кредита:{creditHistory.CreditTerm} мес, Цель кредита: {creditHistory.GoalOfCredit}, Статус:{creditHistory.Name}");
+                    Console.ResetColor();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+        }
+        private static void AddCredit(ref Credit[] creditHistories, Credit creditHistory)
+        {
+            if (creditHistories == null)
+            {
+                return;
+            }
+
+            Array.Resize(ref creditHistories, creditHistories.Length + 1);
+
+            creditHistories[creditHistories.Length - 1] = creditHistory;
         }
 
         private static void CreateCredit(string conString, int number)
@@ -194,7 +268,7 @@ namespace ALIFProjectFirst
             var amount = 0;
         salary:
             Console.Write("Укажите свою заработную плату\nНапример: 3000\n");
-            int.TryParse(Console.ReadLine(), out var salary);
+            decimal.TryParse(Console.ReadLine(), out var salary);
             if (salary <= 0)
             {
                 Console.Write("Укажите свою заработную плату\nВыше чем 0\n");
@@ -207,7 +281,7 @@ namespace ALIFProjectFirst
             }
         credit:
             Console.Write("Укажите сумму кредита которую вы хотите взять\nНапример: 1000\n");
-            int.TryParse(Console.ReadLine(), out var credit);
+            decimal.TryParse(Console.ReadLine(), out var credit);
             if (credit <= 0)
             {
                 Console.Write("Укажите сумму кредита которую вы хотите взять\nВыше чем 0\n");
@@ -218,25 +292,25 @@ namespace ALIFProjectFirst
                 Console.Write("Укажите сумму кредита которую вы хотите взять\nНапример: 1000\n");
                 goto credit;
             }
-            var salaryCount = (credit / salary) * 100;
+            decimal salaryCount = ((credit / salary) * 100.00m);
             var salaryNumber = 0;
             while (salaryNumber < 1)
             {
                 switch (salaryCount)
                 {
-                    case int n when (n >= 0 && n < 80):
+                    case decimal n when (n >= 0 && n < 80):
                         salaryNumber++;
                         amount += 4;
                         break;
-                    case int n when (n >= 80 && n < 150):
+                    case decimal n when (n >= 80 && n < 150):
                         salaryNumber++;
                         amount += 3;
                         break;
-                    case int n when (n >= 150 && n <= 250):
+                    case decimal n when (n >= 150 && n <= 250):
                         salaryNumber++;
                         amount += 2;
                         break;
-                    case int n when (n > 250):
+                    case decimal n when (n > 250):
                         salaryNumber++;
                         amount += 1;
                         break;
@@ -865,12 +939,12 @@ namespace ALIFProjectFirst
         public string Nationality { get; set; }
         public int Amount { get; set; }
     }
-    public class Status
+    public class Status : Account
     {
         public int Id { get; set; }
         public string Name { get; set; }
     }
-    public class Credit
+    public class Credit : Status
     {
         public int Id { get; set; }
         public int Account_Id { get; set; }
