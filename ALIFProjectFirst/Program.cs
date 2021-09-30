@@ -27,7 +27,7 @@ namespace ALIFProjectFirst
                 {
                     case 1:
                         CreateAccount(conString);
-                        Console.WriteLine("Авторизуйтесь пожалуйста Чтобы Войти в учётную запись");
+                        Console.WriteLine("Авторизуйтесь пожалуйста Чтобы Войти в учётную запись если вы уже зарегистрировались");
                         break;
                     case 2:
                     refresh_number:
@@ -106,6 +106,13 @@ namespace ALIFProjectFirst
                         {
                             int accountId = GetAccointId(number, conString);
                             int workSheetId = GetWorkSheetAccointId(accountId, conString);
+
+                            /*int creditHistoryDoNotDouble = CreditHistoryDoNotDouble(conString, number);
+                            
+                            if (workSheetId == 0 && creditHistoryDoNotDouble != 0)
+                            {
+                                Console.WriteLine("Простите у вас уже есть кредит второй получить нельзя");
+                            }*/
                             if (workSheetId == 0)
                             {
                                 CreateWorkSheet(conString, number);
@@ -136,7 +143,13 @@ namespace ALIFProjectFirst
                         {
                             int accountId = GetAccointId(number, conString);
                             int workSheetId = GetWorkSheetAccointId(accountId, conString);
-                            if (workSheetId != 0)
+                            int creditHistoryDoNotDouble = CreditHistoryDoNotDouble(conString, number);
+
+                            if (workSheetId != 0 && creditHistoryDoNotDouble != 0)
+                            {
+                                Console.WriteLine("Простите у вас уже есть кредит второй получить нельзя");
+                            }
+                            else if (workSheetId != 0)
                             {
                                 CreateCredit(conString, number);
                             }
@@ -166,6 +179,33 @@ namespace ALIFProjectFirst
             {
                 return;
             }
+        }
+
+        private static int CreditHistoryDoNotDouble(string conString, int number)
+        {
+            var accNumber = 0;
+            var sqlConnection = new SqlConnection(conString);
+            var query = "Select Account.PhoneNumber from CreditHistory " +
+                "Left join Account On Account.Id = CreditHistory.Account_Id " +
+                "Where Account.PhoneNumber = @number";
+
+            var command = sqlConnection.CreateCommand();
+            command.CommandText = query;
+            command.Parameters.AddWithValue(@"number", number);
+
+            sqlConnection.Open();
+
+            var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                accNumber = reader.GetInt32(0);
+            }
+
+            sqlConnection.Close();
+            reader.Close();
+
+            return accNumber;
         }
 
         private static void ShowRangeCreditHistory(string conString, int number)
@@ -557,7 +597,7 @@ namespace ALIFProjectFirst
                 }
                 else if (result > 0 && statusId == 2)
                 {
-                    Console.WriteLine("Вам отказано в Кредите");
+                    Console.WriteLine("Вам отказано в Кредите из-за ряда нескольких Причин");
                 }
                 else
                 {
