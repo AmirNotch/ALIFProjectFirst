@@ -597,7 +597,7 @@ namespace ALIFProjectFirst
                 }
                 else if (result > 0 && statusId == 2)
                 {
-                    Console.WriteLine("Вам отказано в Кредите из-за ряда нескольких Причин");
+                    Console.WriteLine("Вам не доступен кредит вся инфо по телефону: 900");
                 }
                 else
                 {
