@@ -103,7 +103,7 @@ namespace ALIFProjectFirst
                 switch (choice)
                 {
                     case 1:
-                        {
+                        { 
                             int accountId = GetAccointId(number, conString);
                             int workSheetId = GetWorkSheetAccointId(accountId, conString);
 
